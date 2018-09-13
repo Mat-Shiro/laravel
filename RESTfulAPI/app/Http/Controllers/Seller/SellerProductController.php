@@ -8,6 +8,7 @@ use App\Http\Controllers\ApiController;
 use App\User;
 use App\Product;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Support\Facades\Storage;
 
 class SellerProductController extends ApiController
 {
@@ -43,7 +44,7 @@ class SellerProductController extends ApiController
         $data = $request->all();
 
         $data['status'] = Product::UNAVAILABLE_PRODUCT;
-        $data['image'] = '1.png';
+        $data['image'] = $request->image->store(''); // ('path', 'filesystem')
         $data['seller_id'] = $seller->id;
 
         $product = Product::create($data);
@@ -85,6 +86,12 @@ class SellerProductController extends ApiController
             }
         }
 
+        if ($request->hasFile('image')) {
+            Storage::delete($product->image);
+
+            $product->image = $request->image->store('');
+        }
+
         if ($product->isClean()) {
             return $this->errorResponse("Você deve especificar um valor diferente para atualizar", 422);
         }
@@ -105,6 +112,7 @@ class SellerProductController extends ApiController
         $this->checkSeller($seller, $product);
 
         $product->delete();
+        Storage::delete($product->image);
 
         return $this->showOne($product);
     }
